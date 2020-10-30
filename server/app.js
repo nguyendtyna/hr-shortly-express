@@ -16,69 +16,119 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 
+// routes to home page
+app.get('/',
+  (req, res) => {
+    res.render('index');
+  });
 
-app.get('/', 
-(req, res) => {
-  res.render('index');
-});
+// routes to shortly url creator
+app.get('/create',
+  (req, res) => {
+    res.render('index');
+  });
 
-app.get('/create', 
-(req, res) => {
-  res.render('index');
-});
-
-app.get('/links', 
-(req, res, next) => {
-  models.Links.getAll()
-    .then(links => {
-      res.status(200).send(links);
-    })
-    .error(error => {
-      res.status(500).send(error);
-    });
-});
-
-app.post('/links', 
-(req, res, next) => {
-  var url = req.body.url;
-  if (!models.Links.isValidUrl(url)) {
-    // send back a 404 if link is not valid
-    return res.sendStatus(404);
-  }
-
-  return models.Links.get({ url })
-    .then(link => {
-      if (link) {
-        throw link;
-      }
-      return models.Links.getUrlTitle(url);
-    })
-    .then(title => {
-      return models.Links.create({
-        url: url,
-        title: title,
-        baseUrl: req.headers.origin
+app.get('/links',
+  (req, res, next) => {
+    models.Links.getAll()
+      .then(links => {
+        res.status(200).send(links);
+      })
+      .error(error => {
+        res.status(500).send(error);
       });
-    })
-    .then(results => {
-      return models.Links.get({ id: results.insertId });
-    })
-    .then(link => {
-      throw link;
-    })
-    .error(error => {
-      res.status(500).send(error);
-    })
-    .catch(link => {
-      res.status(200).send(link);
-    });
+  });
+
+app.get('/login', (req, res, next) => {
+  res.render('login');
 });
+
+app.get('/signup', (req, res, next) => {
+  res.render('signup');
+});
+
+app.post('/links',
+  (req, res, next) => {
+    var url = req.body.url;
+    if (!models.Links.isValidUrl(url)) {
+      // send back a 404 if link is not valid
+      return res.sendStatus(404);
+    }
+
+    return models.Links.get({ url })
+      .then(link => {
+        if (link) {
+          throw link;
+        }
+        return models.Links.getUrlTitle(url);
+      })
+      .then(title => {
+        return models.Links.create({
+          url: url,
+          title: title,
+          baseUrl: req.headers.origin
+          //is baseUrl client's URL?
+        });
+      })
+      .then(results => {
+        return models.Links.get({ id: results.insertId });
+      })
+      .then(link => {
+        throw link;
+      })
+      .error(error => {
+        res.status(500).send(error);
+      })
+      .catch(link => {
+        res.status(200).send(link);
+      });
+  });
 
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
 
+app.post('/login', (req, res) => {
+  // use model user compare method ==> (attempted, password, salt)
+});
 
+app.post('/signup', (req, res, next) => {
+  // use model user create method ==> (user obj = username, password)
+  // console.log("REQ BODY USERNAME:", req.body.username);
+  // console.log("REQ BODY PASSWORD:", req.body.password);
+  var username = req.body.username;
+  var password = req.body.password;
+
+  return models.Users.get({ username })
+    .then((userData) => {
+      // if (userData) {
+      //   throw error;
+      // }
+      return models.Users.create({
+        username: username,
+        password: password
+      })
+        .then(user => {
+          res.redirect('/');
+        });
+    })
+    .error(error => {
+      res.status(400).redirect('/signup');
+    })
+    .catch(user => {
+      res.status(200).redirect('/');
+    });
+});
+
+/*
+POST /signup => establishing identity, storing username and pw
+user inputs username and password
+server using those inputs to create a profile
+send user back to home page
+==> see the home page with all links + shorten
+
+POST/login => verifying identity, compare pw, use salt/ hashing function
+*/
 
 /************************************************************/
 // Handle the code parameter route last - if all other routes fail
