@@ -88,8 +88,24 @@ app.post('/links',
 // Write your authentication routes here
 /************************************************************/
 
-app.post('/login', (req, res) => {
+app.post('/login', (req, res, next) => {
   // use model user compare method ==> (attempted, password, salt)
+  var username = req.body.username;
+  // console.log("REQ BODY USERNAME:", username);
+  return models.Users.get({ username })
+    .then((userData) => {
+      // console.log("USERDATA:", userData);
+      if (userData) {
+        if (models.Users.compare(req.body.password, userData.password, userData.salt)) {
+          res.redirect('/');
+        }
+      } else {
+        res.redirect('/login');
+      }
+    })
+    .error((error) => {
+      res.status(400).redirect('/login');
+    });
 });
 
 app.post('/signup', (req, res, next) => {
@@ -101,9 +117,6 @@ app.post('/signup', (req, res, next) => {
 
   return models.Users.get({ username })
     .then((userData) => {
-      // if (userData) {
-      //   throw error;
-      // }
       return models.Users.create({
         username: username,
         password: password
@@ -114,10 +127,10 @@ app.post('/signup', (req, res, next) => {
     })
     .error(error => {
       res.status(400).redirect('/signup');
-    })
-    .catch(user => {
-      res.status(200).redirect('/');
     });
+  // .catch(user => {
+  //   res.status(200).redirect('/');
+  // });
 });
 
 /*
