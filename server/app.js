@@ -98,6 +98,8 @@ app.post('/login', (req, res, next) => {
       if (userData) {
         if (models.Users.compare(req.body.password, userData.password, userData.salt)) {
           res.redirect('/');
+        } else {
+          res.redirect('/login');
         }
       } else {
         res.redirect('/login');
